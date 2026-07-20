@@ -33,7 +33,7 @@ import shutil
 import subprocess
 import sys
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 DELETE_GUARD_FRACTION = 0.20   # refuse to delete more than 20% of dest...
 DELETE_GUARD_MIN = 10          # ...when that's also more than 10 files
 PREVIEW_SAMPLE = 8             # sample paths shown per category
@@ -453,13 +453,66 @@ def run_sync(mode, argv):
 
 # ----------------------------------------------------------------- main ---
 
+def show_help():
+    B, D, G, Y, R = (C_BOLD, C_DIM, C_GREEN, C_YELLOW, C_RESET) if sys.stdout.isatty() else ("",)*5
+    print(f"""{B}rsn{R} — rsync, safe and sane  (v{VERSION})
+
+A UX layer over rsync: explicit intent, automatic dry-run previews,
+delete guards, and plain-English explanations. The rsync engine does
+all real work — rsn just refuses to let a trailing slash ruin your day.
+
+{B}COMMANDS{R}
+  {G}rsn copy   SRC DST{R}    additive copy — never deletes at DST
+  {G}rsn backup SRC DST{R}    archive copy (perms/owners/times/links) — never deletes
+  {G}rsn mirror SRC DST{R}    make DST exactly match SRC — deletes extras ({Y}guarded{R})
+  {G}rsn explain 'CMD'{R}     decode any rsync command into English
+
+{B}OPTIONS{R}  (copy / backup / mirror)
+  --contents           copy the {B}contents{R} of SRC into DST   (like src/)
+  --as-folder          copy SRC {B}as a folder{R} inside DST     (like src)
+  --only PATTERN       transfer only matching files (repeatable)
+  --exclude PATTERN    skip matching files (repeatable)
+  -n, --dry-run        show the preview and stop — change nothing
+  -y, --yes            skip confirmation (for scripts/cron)
+  --force-delete       override the mirror delete guard
+  -q, --quiet          minimal output
+  -- ARGS...           pass everything after -- straight to rsync
+
+{B}EXAMPLES{R}
+  rsn mirror ~/photos /mnt/backup/photos
+      Preview changes, confirm, sync. Deletions shown in red first.
+
+  rsn copy nas:/media/dump ~/photos --contents --only '*.jpg' --only '*.heic'
+      Pull just the photos — no include/exclude ordering rules to memorize.
+
+  rsn mirror /srv/data /mnt/backup/data --yes
+      Cron-safe: if SRC ever comes up empty (dead mount), the delete
+      guard refuses to wipe DST and exits with code 3.
+
+  rsn explain 'rsync -avzP --delete src/ host:/backups'
+      Flag-by-flag English breakdown, with destructive flags marked.
+
+  rsn mirror big/ dst/ -- --bwlimit=5M -e 'ssh -p 2222'
+      Anything after -- goes straight to rsync.
+
+{B}HINTS{R}
+  {D}•{R} Not sure what a run will do? Add {B}-n{R} — full preview, zero changes.
+  {D}•{R} On a terminal, rsn {B}asks{R} "folder or contents?" — no slash divination.
+      A trailing slash on SRC still means "contents", if that's your habit.
+  {D}•{R} mirror = "make DST look like SRC". If you don't want deletions,
+      you want {B}backup{R} or {B}copy{R}.
+  {D}•{R} Exit codes: 0 ok · 1 error · 3 delete guard tripped · else rsync's own.
+
+Docs & source: https://github.com/sunkencity999/rsn""")
+    return 0
+
+
 def main():
     if shutil.which("rsync") is None:
         die("rsync is not installed")
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help", "help"):
-        print(__doc__.strip())
-        return 0
+        return show_help()
     if args[0] in ("-V", "--version"):
         print(f"rsn {VERSION} (wrapping: {subprocess.run(['rsync', '--version'], capture_output=True, text=True).stdout.splitlines()[0]})")
         return 0
