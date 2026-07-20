@@ -418,7 +418,7 @@ def run_sync(mode, argv):
         total_dest = count_dest_files(dst)
         if total_dest and len(deleted) > DELETE_GUARD_MIN and \
            len(deleted) / total_dest > DELETE_GUARD_FRACTION:
-            pct = 100 * len(deleted) / total_dest
+            pct = min(100.0, 100 * len(deleted) / total_dest)
             print(col(C_RED + C_BOLD, f"\n⛔ Delete guard: this would remove {len(deleted)} of ~{total_dest} "
                   f"files at the destination ({pct:.0f}%)."))
             print("   If that's really what you want, re-run with --force-delete.")
@@ -437,7 +437,7 @@ def run_sync(mode, argv):
             return 0
 
     # --- real run ---
-    real_cmd = cmd[:-2] + ["--stats"] + (["--info=progress2"] if tty() and not quiet else []) + cmd[-2:]
+    real_cmd = cmd[:-2] + (["--info=progress2"] if tty() and not quiet else ["--stats"]) + cmd[-2:]
     proc = subprocess.run(real_cmd, capture_output=False if tty() else True,
                           text=True)
     if proc.returncode == 24:

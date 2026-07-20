@@ -5,6 +5,8 @@ just refuses to let a trailing slash ruin your day.
 
 Single-file Python 3 (stdlib only). No dependencies. Works anywhere rsync works.
 
+![rsn demo — preview, confirm, delete guard, explain](demo/demo.gif)
+
 ```
 $ rsn mirror ~/photos /mnt/backup/photos
 
